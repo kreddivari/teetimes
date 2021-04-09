@@ -1,0 +1,40 @@
+plugins {
+	id 'org.springframework.boot' version '2.5.0-SNAPSHOT'
+	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+	id 'java'
+}
+
+group = 'com.nai'
+sourceCompatibility = '8'
+
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+jar.archiveName="teetimes.jar"
+
+repositories {
+	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }
+	maven { url 'https://repo.spring.io/snapshot' }
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	compile('org.seleniumhq.selenium:selenium-java:3.4.0') {
+		exclude group: 'org.seleniumhq.selenium', module: 'selenium-android-driver'
+		exclude group: 'org.seleniumhq.selenium', module: 'selenium-iphone-driver'
+		exclude group: 'org.seleniumhq.selenium', module: 'selenium-safari-driver'
+		exclude group: 'org.webbitserver', module: 'webbit'
+		exclude group: 'commons-codec', module: 'commons-codec'
+		exclude group: 'cglib', module: 'cglib-nodep'
+	}
+}
+
+test {
+	useJUnitPlatform()
+}
