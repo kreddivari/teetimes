@@ -1,27 +1,19 @@
 package com.nai.reservation;
-import java.awt.*;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
-import java.text.SimpleDateFormat;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.temporal.TemporalAdjusters;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
-import org.springframework.core.env.Environment;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class Scheduler {
@@ -41,19 +33,43 @@ public class Scheduler {
     @Value("${teetime.url}")
     private  String url;
 
-    @Value("${teetime.time}")
-    private  String time;
+    @Value("${teetime.saturday.time}")
+    private  String SaturdayStartTime;
 
-    @Scheduled(cron = "0 00 05 * * SAT")
-    public void cronJobSch() {
+    @Value("${teetime.sunday.time}")
+    private  String SundayStartTime;
+
+    @Scheduled(cron = "0 33 18 * * SAT")
+    public void cronJobSaturday() {
         try {
-            scheduleTT();
+            String[] timeref=SaturdayStartTime.split(":");
+            Integer hourRef=Integer.parseInt(timeref[0]);
+            Integer minRef=Integer.parseInt(timeref[1]);
+            LocalDate dt = LocalDate.now();
+            LocalDate nextSaturday=dt.with(TemporalAdjusters.next(DayOfWeek.SATURDAY));
+            Integer dateToClick=nextSaturday.getDayOfMonth();
+            scheduleTT(dateToClick,hourRef,hourRef);
         }catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void scheduleTT() {
+    @Scheduled(cron = "0 00 05 * * SUN")
+    public void cronJobSunday() {
+        try {
+            String[] timeref=SundayStartTime.split(":");
+            Integer hourRef=Integer.parseInt(timeref[0]);
+            Integer minRef=Integer.parseInt(timeref[1]);
+            LocalDate dt = LocalDate.now();
+            LocalDate nextSaturday=dt.with(TemporalAdjusters.next(DayOfWeek.SUNDAY));
+            Integer dateToClick=nextSaturday.getDayOfMonth();
+            scheduleTT(dateToClick,hourRef,hourRef);
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void scheduleTT(Integer dateToClick,Integer hourRef,Integer minRef) {
         String userHome=System.getProperty("user.home");
         System.out.println("user home"+userHome);
         System.setProperty("webdriver.chrome.driver", userHome+"\\teetimes\\chromedriver.exe");
@@ -61,13 +77,6 @@ public class Scheduler {
         driver.manage().window().maximize();
         driver.get(url);
         driver.navigate().refresh();
-        String[] timeref=time.split(":");
-        Integer hourRef=Integer.parseInt(timeref[0]);
-        Integer minRef=Integer.parseInt(timeref[1]);
-        LocalDate dt = LocalDate.now();
-        LocalDate nextSaturday=dt.with(TemporalAdjusters.next(DayOfWeek.SATURDAY));
-        Integer dateToClick=nextSaturday.getDayOfMonth();
-
         try{
             driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
            //day click
@@ -117,11 +126,11 @@ public class Scheduler {
             mail.sendKeys(email);
             phone.sendKeys(mobile);
 
-            WebElement reserve=driver.findElement(By.id("btnBookTeeTime"));
+           /* WebElement reserve=driver.findElement(By.id("btnBookTeeTime"));
             reserve.click();
             driver.switchTo( ).alert( ).accept();
             driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
-
+*/
 
         }
         catch(Exception e){
