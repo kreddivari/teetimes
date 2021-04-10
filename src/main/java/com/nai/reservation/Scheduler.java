@@ -3,6 +3,9 @@ import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -41,7 +44,7 @@ public class Scheduler {
     @Value("${teetime.time}")
     private  String time;
 
-    @Scheduled(cron = "0 48 16 * * SAT")
+    @Scheduled(cron = "0 00 05 * * SAT")
     public void cronJobSch() {
         try {
             scheduleTT();
@@ -58,52 +61,68 @@ public class Scheduler {
         driver.manage().window().maximize();
         driver.get(url);
         driver.navigate().refresh();
+        String[] timeref=time.split(":");
+        Integer hourRef=Integer.parseInt(timeref[0]);
+        Integer minRef=Integer.parseInt(timeref[1]);
+        LocalDate dt = LocalDate.now();
+        LocalDate nextSaturday=dt.with(TemporalAdjusters.next(DayOfWeek.SATURDAY));
+        Integer dateToClick=nextSaturday.getDayOfMonth();
+
         try{
-            Boolean calenderSelected=false;
             driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
-            WebElement table = driver.findElement(By.xpath("//table"));
-            java.util.List<WebElement> allRows = table.findElements(By.tagName("tr"));
-            for (WebElement row : allRows) {
-                List<WebElement> cells = row.findElements(By.className("day"));
-                for (WebElement cell : cells) {
-                    if(cell.getText().equals("10")){
+           //day click
+            WebElement daytoclick=driver.findElement(By.xpath("//td[text()="+dateToClick.toString()+"]"));
+            daytoclick.click();
 
-                        cell.click();
-                        driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
-                        WebElement teetIme=driver.findElement(By.xpath("//h2[text()=\""+time+" "+"\"]/ancestor::div[2]/div[@class='panel-footer']/button"));
-
+            driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+            java.util.List<WebElement> alltimes = driver.findElements(By.xpath("//div[@class=\"panel-heading\"]/h2"));
+            for(WebElement times:alltimes){
+                boolean timeFound=false;
+                if(!timeFound){
+                    String[] webtimeref=times.getText().split(":");
+                    Integer webhourRef=Integer.parseInt(webtimeref[0]);
+                    String webminrefmain=webtimeref[1].split("\\s+")[0];
+                    String AMPM=webtimeref[1].split("\\s+")[1];
+                    Integer webminRef=Integer.parseInt(webminrefmain);
+                    if((webhourRef>hourRef) || (webhourRef==hourRef && webminRef>=minRef)|| (webhourRef<hourRef && AMPM.equals("PM"))){
+                        timeFound=true;
+                        WebElement teetIme=driver.findElement(By.xpath("//h2[text()=\""+webhourRef+":"+webminRef+" "+"\"]/ancestor::div[2]/div[@class='panel-footer']/button"));
                         teetIme.click();
-
-                        WebElement noOfGolfers=driver.findElement(By.xpath("//div[@id=\"qty_popup_notice\"]/a[1]"));
-                        noOfGolfers.click();
-
-                        driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
-                        WebElement termsAndConditions=driver.findElement(By.id("cboReqPolicy"));
-                        termsAndConditions.click();
-
-                        WebElement continueAsGuest=driver.findElement(By.id("btnBookTeeTimeGuest"));
-                        continueAsGuest.click();
-                        driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
-
-                        WebElement fName=driver.findElement(By.id("trfirst"));
-                        WebElement lName=driver.findElement(By.id("trlast"));
-                        WebElement mail=driver.findElement(By.id("tremail"));
-                        WebElement phone=driver.findElement(By.id("trphone"));
-
-                        fName.sendKeys(firstName);
-                        lName.sendKeys(lastName);
-                        mail.sendKeys(email);
-                        phone.sendKeys(mobile);
-
-                        WebElement reserve=driver.findElement(By.id("btnBookTeeTime"));
-                        reserve.click();
-                        driver.switchTo( ).alert( ).accept();
-                        driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
-                       // driver.close();
-                        return;
+                        System.out.println("time"+webhourRef+":"+webminRef);
+                        break;
                     }
                 }
             }
+
+            //next page
+
+            WebElement noOfGolfers=driver.findElement(By.xpath("//div[@id=\"qty_popup_notice\"]/a[1]"));
+            noOfGolfers.click();
+
+            driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+            WebElement termsAndConditions=driver.findElement(By.id("cboReqPolicy"));
+            termsAndConditions.click();
+
+            WebElement continueAsGuest=driver.findElement(By.id("btnBookTeeTimeGuest"));
+            continueAsGuest.click();
+            driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+
+            WebElement fName=driver.findElement(By.id("trfirst"));
+            WebElement lName=driver.findElement(By.id("trlast"));
+            WebElement mail=driver.findElement(By.id("tremail"));
+            WebElement phone=driver.findElement(By.id("trphone"));
+
+            fName.sendKeys(firstName);
+            lName.sendKeys(lastName);
+            mail.sendKeys(email);
+            phone.sendKeys(mobile);
+
+            WebElement reserve=driver.findElement(By.id("btnBookTeeTime"));
+            reserve.click();
+            driver.switchTo( ).alert( ).accept();
+            driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+
+
         }
         catch(Exception e){
             System.out.println("Exception >>   " + e.getMessage());
