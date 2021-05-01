@@ -10,6 +10,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
@@ -39,14 +40,16 @@ public class Scheduler {
     @Value("${teetime.sunday.time}")
     private  String SundayStartTime;
 
-    @Scheduled(cron = "0 33 18 * * SAT")
+    private static String OS = System.getProperty("os.name").toLowerCase();
+
+    @Scheduled(cron = "0 44 23 * * FRI")
     public void cronJobSaturday() {
         try {
             String[] timeref=SaturdayStartTime.split(":");
             Integer hourRef=Integer.parseInt(timeref[0]);
             Integer minRef=Integer.parseInt(timeref[1]);
             LocalDate dt = LocalDate.now();
-            LocalDate nextSaturday=dt.with(TemporalAdjusters.next(DayOfWeek.SATURDAY));
+            LocalDate nextSaturday=dt.with(TemporalAdjusters.next(DayOfWeek.MONDAY));
             Integer dateToClick=nextSaturday.getDayOfMonth();
             scheduleTT(dateToClick,hourRef,hourRef);
         }catch (Exception e) {
@@ -71,20 +74,27 @@ public class Scheduler {
 
     public void scheduleTT(Integer dateToClick,Integer hourRef,Integer minRef) {
         String userHome=System.getProperty("user.home");
-        System.out.println("user home"+userHome);
-        System.setProperty("webdriver.chrome.driver", userHome+"\\teetimes\\chromedriver.exe");
+        String userHomeDir = null;
+        if (isWindows()) {
+            userHomeDir=userHome+File.separator+"teetimes"+ File.separator+"chromedriver.exe";
+        } else if (isMac()) {
+            userHomeDir=userHome+File.separator+"teetimes"+ File.separator+"chromedriver";
+        }
+        System.setProperty("webdriver.chrome.driver", userHomeDir);
         WebDriver driver=new ChromeDriver();
         driver.manage().window().maximize();
         driver.get(url);
-        driver.navigate().refresh();
+        //driver.navigate().refresh();
         try{
             driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
            //day click
-            WebElement daytoclick=driver.findElement(By.xpath("//td[text()="+dateToClick.toString()+"]"));
+            WebElement daytoclick=driver.findElement(By.xpath("//td[@class=\"day new\"][text()="+dateToClick.toString()+"]"));
             daytoclick.click();
 
-            driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
-            java.util.List<WebElement> alltimes = driver.findElements(By.xpath("//div[@class=\"panel-heading\"]/h2"));
+            driver.manage().timeouts().pageLoadTimeout(2, TimeUnit.SECONDS);
+           // java.util.List<WebElement> alltimes = driver.findElements(By.xpath("//div[@class=\"panel-heading\"]/h2"));
+            java.util.List<WebElement> alltimes = driver.findElements(By.xpath("//h2"));
+
             for(WebElement times:alltimes){
                 boolean timeFound=false;
                 if(!timeFound){
@@ -96,9 +106,11 @@ public class Scheduler {
                     if((webhourRef>hourRef) || (webhourRef==hourRef && webminRef>=minRef)|| (webhourRef<hourRef && AMPM.equals("PM"))){
                         timeFound=true;
                         WebElement teetIme=driver.findElement(By.xpath("//h2[text()=\""+webhourRef+":"+webminRef+" "+"\"]/ancestor::div[2]/div[@class='panel-footer']/button"));
-                        teetIme.click();
-                        System.out.println("time"+webhourRef+":"+webminRef);
-                        break;
+                        WebElement NumofGolfers=driver.findElement(By.xpath("//h2[text()=\""+webhourRef+":"+webminRef+" "+"\"]/ancestor::div[2]/div[@class='panel-body']/div[2]"));
+                        if(NumofGolfers.getText().equals("1 to 4 golfers")){
+                            teetIme.click();
+                            break;
+                        }
                     }
                 }
             }
@@ -108,13 +120,13 @@ public class Scheduler {
             WebElement noOfGolfers=driver.findElement(By.xpath("//div[@id=\"qty_popup_notice\"]/a[1]"));
             noOfGolfers.click();
 
-            driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+            driver.manage().timeouts().implicitlyWait(1, TimeUnit.SECONDS);
             WebElement termsAndConditions=driver.findElement(By.id("cboReqPolicy"));
             termsAndConditions.click();
 
             WebElement continueAsGuest=driver.findElement(By.id("btnBookTeeTimeGuest"));
             continueAsGuest.click();
-            driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+            driver.manage().timeouts().implicitlyWait(1, TimeUnit.SECONDS);
 
             WebElement fName=driver.findElement(By.id("trfirst"));
             WebElement lName=driver.findElement(By.id("trlast"));
@@ -126,12 +138,11 @@ public class Scheduler {
             mail.sendKeys(email);
             phone.sendKeys(mobile);
 
-           /* WebElement reserve=driver.findElement(By.id("btnBookTeeTime"));
+            /*WebElement reserve=driver.findElement(By.id("btnBookTeeTime"));
             reserve.click();
             driver.switchTo( ).alert( ).accept();
             driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
 */
-
         }
         catch(Exception e){
             System.out.println("Exception >>   " + e.getMessage());
@@ -139,12 +150,31 @@ public class Scheduler {
 
     }
 
+    public char getPathSeparator(){
+        // Using System properties
+        String pathSeparator = System.getProperty( "path.separator" );
+        // Using File variable (String)
+        String pathSeperator = File.pathSeparator;
+       // Using File variable (char)
+        char pathSeparatorChar = File.pathSeparatorChar;
+        System.out.println("pathSeparatorChar"+pathSeparatorChar);
+        return pathSeparatorChar;
+    }
+
     public PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
         String userHome=System.getProperty("user.home");
         PropertySourcesPlaceholderConfigurer properties =
                 new PropertySourcesPlaceholderConfigurer();
-        properties.setLocation(new FileSystemResource(userHome+"\\teetimes\\application.properties"));
+        properties.setLocation(new FileSystemResource(userHome+getPathSeparator()+"teetimes"+getPathSeparator()+"application.properties"));
         properties.setIgnoreResourceNotFound(false);
         return properties;
+    }
+
+    public static boolean isWindows() {
+        return (OS.indexOf("win") >= 0);
+    }
+
+    public static boolean isMac() {
+        return (OS.indexOf("mac") >= 0);
     }
 }
