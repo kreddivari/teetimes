@@ -42,14 +42,14 @@ public class Scheduler {
 
     private static String OS = System.getProperty("os.name").toLowerCase();
 
-    @Scheduled(cron = "0 44 23 * * FRI")
+    @Scheduled(cron = "0 00 05 * * SAT")
     public void cronJobSaturday() {
         try {
             String[] timeref=SaturdayStartTime.split(":");
             Integer hourRef=Integer.parseInt(timeref[0]);
             Integer minRef=Integer.parseInt(timeref[1]);
             LocalDate dt = LocalDate.now();
-            LocalDate nextSaturday=dt.with(TemporalAdjusters.next(DayOfWeek.MONDAY));
+            LocalDate nextSaturday=dt.with(TemporalAdjusters.next(DayOfWeek.SATURDAY));
             Integer dateToClick=nextSaturday.getDayOfMonth();
             scheduleTT(dateToClick,hourRef,hourRef);
         }catch (Exception e) {
@@ -88,7 +88,8 @@ public class Scheduler {
         try{
             driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
            //day click
-            WebElement daytoclick=driver.findElement(By.xpath("//td[@class=\"day new\"][text()="+dateToClick.toString()+"]"));
+            //WebElement daytoclick=driver.findElement(By.xpath("//td[@class=\"day\"][text()="+dateToClick.toString()+"]"));
+            WebElement daytoclick=driver.findElement(By.xpath("//td[contains(@class, 'day') or contains(@class, 'weekend-column') or contains(@class, 'new')][text()="+dateToClick.toString()+"]"));
             daytoclick.click();
 
             driver.manage().timeouts().pageLoadTimeout(2, TimeUnit.SECONDS);
@@ -103,10 +104,16 @@ public class Scheduler {
                     String webminrefmain=webtimeref[1].split("\\s+")[0];
                     String AMPM=webtimeref[1].split("\\s+")[1];
                     Integer webminRef=Integer.parseInt(webminrefmain);
+                    String minref=null;
+                    if(webminRef==0){
+                        minref="00";
+                    }else{
+                        minref=webminRef.toString();
+                    }
                     if((webhourRef>hourRef) || (webhourRef==hourRef && webminRef>=minRef)|| (webhourRef<hourRef && AMPM.equals("PM"))){
                         timeFound=true;
-                        WebElement teetIme=driver.findElement(By.xpath("//h2[text()=\""+webhourRef+":"+webminRef+" "+"\"]/ancestor::div[2]/div[@class='panel-footer']/button"));
-                        WebElement NumofGolfers=driver.findElement(By.xpath("//h2[text()=\""+webhourRef+":"+webminRef+" "+"\"]/ancestor::div[2]/div[@class='panel-body']/div[2]"));
+                        WebElement teetIme=driver.findElement(By.xpath("//h2[text()=\""+webhourRef+":"+minref+" "+"\"]/ancestor::div[2]/div[@class='panel-footer']/button"));
+                        WebElement NumofGolfers=driver.findElement(By.xpath("//h2[text()=\""+webhourRef+":"+minref+" "+"\"]/ancestor::div[2]/div[@class='panel-body']/div[2]"));
                         if(NumofGolfers.getText().equals("1 to 4 golfers")){
                             teetIme.click();
                             break;
@@ -138,11 +145,10 @@ public class Scheduler {
             mail.sendKeys(email);
             phone.sendKeys(mobile);
 
-            /*WebElement reserve=driver.findElement(By.id("btnBookTeeTime"));
+            WebElement reserve=driver.findElement(By.id("btnBookTeeTime"));
             reserve.click();
             driver.switchTo( ).alert( ).accept();
             driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
-*/
         }
         catch(Exception e){
             System.out.println("Exception >>   " + e.getMessage());

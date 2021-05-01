@@ -1,5 +1,5 @@
 # teetimes
-
+https://github.com/kreddivari/teetimes
 # step 1
 Place teetimes folder in the user.home directory, make sure teetimes folder containes application.properties file and chromedrive executable file.
 
